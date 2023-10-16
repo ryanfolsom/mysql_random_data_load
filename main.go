@@ -389,6 +389,9 @@ func makeValueFuncs(conn *sql.DB, fields []tableparser.Field, samples int64) ins
 		if !field.IsNullable && field.ColumnKey == "PRI" && strings.Contains(field.Extra, "auto_increment") {
 			continue
 		}
+		if strings.Contains(field.Extra, "VIRTUAL GENERATED") {
+			continue
+		}
 		if field.Constraint != nil {
 			samples, err := getSamples(conn, field.Constraint.ReferencedTableSchema,
 				field.Constraint.ReferencedTableName,
@@ -446,6 +449,9 @@ func getFieldNames(fields []tableparser.Field) []string {
 		}
 		if !field.IsNullable && field.ColumnKey == "PRI" &&
 			strings.Contains(field.Extra, "auto_increment") {
+			continue
+		}
+		if strings.Contains(field.Extra, "VIRTUAL GENERATED") {
 			continue
 		}
 		fieldNames = append(fieldNames, backticks(field.ColumnName))
