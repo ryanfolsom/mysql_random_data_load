@@ -1,3 +1,5 @@
+.idea
+mysql_random_data_load
 random_data_load*
 vendor/
 bin/*

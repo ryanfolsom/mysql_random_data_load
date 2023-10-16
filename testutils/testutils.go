@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -115,6 +114,11 @@ func GetMinorVersion(tb testing.TB, db *sql.DB) *version.Version {
 func LoadFile(tb testing.TB, filename string) []string {
 	file := filepath.Join("testdata", filename)
 	fh, err := os.Open(file)
+	if err != nil {
+		fmt.Printf("error opening file %q: %s\n", file, err)
+		tb.FailNow()
+	}
+
 	lines := []string{}
 	reader := bufio.NewReader(fh)
 
@@ -147,16 +151,21 @@ func WriteFile(tb testing.TB, filename string, lines []string) {
 		fmt.Printf("%s cannot load json file %q: %s\n\n", caller(), file, err)
 		tb.FailNow()
 	}
+	defer ofh.Close()
+
 	for _, line := range lines {
-		ofh.WriteString(line + "\n")
+		_, err = ofh.WriteString(line + "\n")
+		if err != nil {
+			fmt.Printf("error writing to file %q: %s\n", file, err)
+			tb.FailNow()
+		}
 	}
-	ofh.Close()
 }
 
 func LoadQueriesFromFile(tb testing.TB, filename string) {
 	conn := GetMySQLConnection(tb)
 	file := filepath.Join("testdata", filename)
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Printf("%s cannot load json file %q: %s\n\n", caller(), file, err)
 		tb.FailNow()
@@ -170,7 +179,7 @@ func LoadQueriesFromFile(tb testing.TB, filename string) {
 
 func LoadJson(tb testing.TB, filename string, dest interface{}) {
 	file := filepath.Join("testdata", filename)
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Printf("%s cannot load json file %q: %s\n\n", caller(), file, err)
 	}
@@ -188,7 +197,7 @@ func WriteJson(tb testing.TB, filename string, data interface{}) {
 		fmt.Printf("%s cannot marshal %T into %q: %s\n\n", caller(), data, file, err)
 		tb.FailNow()
 	}
-	err = ioutil.WriteFile(file, buf, os.ModePerm)
+	err = os.WriteFile(file, buf, os.ModePerm)
 	if err != nil {
 		fmt.Printf("%s cannot write file %q: %s\n\n", caller(), file, err)
 		tb.FailNow()

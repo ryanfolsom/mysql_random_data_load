@@ -7,9 +7,9 @@ import (
 )
 
 type RandomDateTimeInRange struct {
-	min       string
-	max       string
-	allowNull bool
+	min       string //nolint:unused // Chesterton's fence found during linter cleanup
+	max       string //nolint:unused // Chesterton's fence found during linter cleanup
+	allowNull bool   //nolint:unused // Chesterton's fence found during linter cleanup
 }
 
 // Value returns a random time.Time in the range specified by the New method
