@@ -10,6 +10,7 @@ import (
 	"github.com/ryanfolsom/mysql_random_data_load/internal/getters"
 	"github.com/ryanfolsom/mysql_random_data_load/tableparser"
 	tu "github.com/ryanfolsom/mysql_random_data_load/testutils"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetSamples(t *testing.T) {
@@ -78,4 +79,75 @@ func TestGenerateInsertStmt(t *testing.T) {
 
 	query := generateInsertStmt(table)
 	tu.Equals(t, want, query)
+}
+
+func Test_getFieldNames(t *testing.T) {
+	tests := []struct {
+		name  string
+		gets  []tableparser.Field
+		wants []string
+	}{
+		{
+			name: "should ignore auto_increment fields",
+			gets: []tableparser.Field{
+				{ColumnKey: "PRI", ColumnName: "test_autoincr", ColumnType: "int(11)", DataType: "int", Extra: "auto_increment"},
+				{ColumnName: "test_int", ColumnType: "int(11)", DataType: "int"},
+				{ColumnName: "test_datetime", ColumnType: "datetime(6)", DataType: "datetime"},
+			},
+			wants: []string{"`test_int`", "`test_datetime`"},
+		},
+		{
+			name: "should ignore virtual generated columns",
+			gets: []tableparser.Field{
+				{ColumnName: "test_virtual", ColumnType: "int(11)", DataType: "int", Extra: "VIRTUAL GENERATED"},
+				{ColumnName: "test_int", ColumnType: "int(11)", DataType: "int"},
+				{ColumnName: "test_datetime", ColumnType: "datetime(6)", DataType: "datetime"},
+			},
+			wants: []string{"`test_int`", "`test_datetime`"},
+		},
+		{
+			name: "should return field names with backticks",
+			gets: []tableparser.Field{
+				{ColumnName: "test_int", ColumnType: "int(11)", DataType: "int"},
+				{ColumnName: "test_datetime", ColumnType: "datetime(6)", DataType: "datetime"},
+			},
+			wants: []string{"`test_int`", "`test_datetime`"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := getFieldNames(tc.gets)
+			assert.Equal(t, tc.wants, res)
+		})
+	}
+}
+
+func Test_makeValueFuncs(t *testing.T) {
+	tests := []struct {
+		name  string
+		gets  []tableparser.Field
+		wants insertValues
+	}{
+		{
+			name:  "should return nil when there are no value functions to be created",
+			gets:  []tableparser.Field{},
+			wants: nil,
+		},
+		{
+			name: "should ignore virtual generated columns",
+			gets: []tableparser.Field{
+				{ColumnName: "test_virtual", ColumnType: "int(11)", DataType: "int", Extra: "VIRTUAL GENERATED"},
+			},
+			wants: nil,
+		},
+	}
+
+	// TODO: This test is incomplete.
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			res := makeValueFuncs(nil, tc.gets, 0)
+			assert.Equal(t, tc.wants, res)
+		})
+	}
 }
